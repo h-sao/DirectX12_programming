@@ -7,10 +7,12 @@
 
 #include<iostream>
 
-///@brief Show debug formatted string to console
-///@param format (%d, %f, ...)
-///@param variable length parameter
-///@remarks only debug mode
+/// <summary>
+/// Show debug formatted string to console
+/// remarks only debug mode
+/// </summary>
+/// <param name="format">format (%d, %f, ...)</param>
+/// <param name="">variable length parameter</param>
 void DebugOutputFormatString(const char* format, ...)
 {
     va_list valist;
@@ -19,6 +21,10 @@ void DebugOutputFormatString(const char* format, ...)
     va_end(valist);
 }
 
+/// <summary>
+/// main
+/// </summary>
+/// <returns></returns>
 int main()
 {
     DebugOutputFormatString("Show window test.");
