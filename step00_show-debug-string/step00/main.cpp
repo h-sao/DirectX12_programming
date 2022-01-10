@@ -28,7 +28,6 @@ void DebugOutputFormatString(const char* format, ...)
 int main()
 {
     DebugOutputFormatString("Show window test.");
-    getchar();
 
     return 0;
 }
