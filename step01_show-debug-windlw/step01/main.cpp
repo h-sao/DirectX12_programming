@@ -1,102 +1,80 @@
-﻿// step01:
+// step01:
 // Show blank window
 //   written by Akiko Kawai
 // ===========================================
 // include
 #include<Windows.h>
-#include<tchar.h>
-#include<iostream>
+#include <stdexcept>
 
-// ===========================================
 // definition
-const unsigned int window_width = 1280;
-const unsigned int window_height = 720;
-
-// ===========================================
-// function
-
-/// <summary>
-/// Show debug formatted string to console
-/// remarks only debug mode
-/// </summary>
-/// <param name="format">format (%d, %f, ...)</param>
-/// <param name="">variable length parameter</param>
-void DebugOutputFormatString(const char* format, ...)
-{
-    va_list valist;
-    va_start(valist, format);
-    vprintf(format, valist);
-    va_end(valist);
-}
+const unsigned int WINDOW_WIDTH = 1280;
+const unsigned int WINDOW_HEIGHT = 720;
 
 /// <summary>
 /// Make Window procedure
 /// </summary>
-/// <param name="hwnd"></param>
-/// <param name="msg"></param>
-/// <param name="wparam"></param>
-/// <param name="lparam"></param>
-/// <returns></returns>
-LRESULT WindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
     if (msg == WM_DESTROY) {          // call when discard window
         PostQuitMessage(0);   // tell OS app finessing
         return 0;
     }
-    return DefWindowProc(hwnd, msg, wparam, lparam);    //
+    return DefWindowProc(hWnd, msg, wparam, lparam);
 }
 
 /// <summary>
-/// main
+/// WinMain
 /// </summary>
-/// <returns></returns>
-int main()
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
-    DebugOutputFormatString("Show window test.");
-
-    // ---------------------------------
     // make/register window class
-    WNDCLASSEX w = {};
-    w.cbSize = sizeof(WNDCLASSEX);
-    w.lpfnWndProc = (WNDPROC)WindowProcedure;    // setting callback
-    w.lpszClassName = _T("DirectXTest");         // application class name
-    w.hInstance = GetModuleHandle(0);            // get handle (anything name is OK)
-    RegisterClassEx(&w);                         // register application class
+    WNDCLASSEX wc = {};
+    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.lpfnWndProc = (WNDPROC)WndProc;     // setting callback
+    wc.lpszClassName = L"DirectXTest";     // application class name
+    wc.hInstance = hInstance;
+    RegisterClassEx(&wc);                  // register application class
 
-    RECT wrc = { 0,0, window_width, window_height };
-    AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);  // set window size
+    DWORD dwStyle = WS_OVERLAPPEDWINDOW;
+    RECT rect = { 0,0, WINDOW_WIDTH, WINDOW_HEIGHT };
+    AdjustWindowRect(&rect, dwStyle, false);  // set window size
 
-    // ---------------------------------
     // make windows object
-    HWND hwnd = CreateWindow(w.lpszClassName,  // set class name
-        _T("DX12 Test"),                       // title bar character
-        WS_OVERLAPPEDWINDOW,                   // title bar border window
+    auto hwnd = CreateWindow(wc.lpszClassName, // set class name
+        L"DX12 Test",                          // title bar character
+        dwStyle,                               // title bar border window
         CW_USEDEFAULT,                         // display x pos
         CW_USEDEFAULT,                         // display y pos
-        wrc.right - wrc.left,                  // window w
-        wrc.bottom - wrc.top,                  // windows h
-        nullptr,                               // parent window handle
-        nullptr,                               // menu handle
-        w.hInstance,                           // call application handle
-        nullptr);                              // add parameter
+        rect.right - rect.left,                // window w
+        rect.bottom - rect.top,                // windows h
+        nullptr,                  // parent window handle
+        nullptr,                  // menu handle
+        wc.hInstance,             // call application handle
+        nullptr                   // add parameter
+    );
 
-    ShowWindow(hwnd, SW_SHOW);    // show window
+    try
+    {
+        ShowWindow(hwnd, nCmdShow);    // show window
 
-    MSG msg = {};
-    while (true) {
-        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+        MSG msg{};
+        while (msg.message != WM_QUIT){
+            if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
         }
-        // end of application?
-        if (msg.message == WM_QUIT) {
-            break;
-        }
+
+        // remove
+        UnregisterClass(wc.lpszClassName, wc.hInstance);
+
+        return static_cast<int>(msg.wParam);
     }
-
-    // remove
-    UnregisterClass(w.lpszClassName, w.hInstance);
-
+    catch (std::runtime_error e) {
+        DebugBreak();
+        OutputDebugStringA(e.what());
+        OutputDebugStringA("\n");
+    }
     return 0;
 }
 
