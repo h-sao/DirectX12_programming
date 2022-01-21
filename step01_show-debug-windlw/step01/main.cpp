@@ -3,7 +3,7 @@
 //   written by Akiko Kawai
 // ===========================================
 // include
-#include<Windows.h>
+#include <Windows.h>
 #include <stdexcept>
 
 // definition
