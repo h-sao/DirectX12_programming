@@ -1,129 +1,113 @@
 // step02:
-// 
+//  Init D3D device
 //   written by Akiko Kawai
 // ===========================================
 // include
-#include<Windows.h>
-#include<tchar.h>
-#include<d3d12.h>
-#include<dxgi1_6.h>
-#include<iostream>
+#include <Windows.h>
+#include <d3d12.h>
+#include <wrl.h>
 
-// ===========================================
+#include <stdexcept>
+
 // pragma
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"dxgi.lib")
 
-// ===========================================
 // definition
-const unsigned int window_width = 1280;
-const unsigned int window_height = 720;
+const unsigned int WINDOW_WIDTH = 1280;
+const unsigned int WINDOW_HEIGHT = 720;
 
-// ===========================================
-// global variable
-IDXGIFactory6* dxgiFactory_ = nullptr;
-ID3D12Device* dev_ = nullptr;
-IDXGISwapChain4* swapchain_ = nullptr;
+template<class T>
+using ComPtr = Microsoft::WRL::ComPtr<T>;
 
-// ===========================================
-// ===========================================
-// ===========================================
-// function
-
-/// <summary>
-/// Show debug formatted string to console
-/// remarks only debug mode
-/// </summary>
-/// <param name="format">format (%d, %f, ...)</param>
-/// <param name="">variable length parameter</param>
-void DebugOutputFormatString(const char* format, ...)
-{
-    va_list valist;
-    va_start(valist, format);
-    vprintf(format, valist);
-    va_end(valist);
-}
 
 /// <summary>
 /// Make Window procedure
 /// </summary>
-/// <param name="hwnd"></param>
-/// <param name="msg"></param>
-/// <param name="wparam"></param>
-/// <param name="lparam"></param>
-/// <returns></returns>
-LRESULT WindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-    if (msg == WM_DESTROY) {          // call when discard window
+    if (msg == WM_DESTROY) {  // call when discard window
         PostQuitMessage(0);   // tell OS app finessing
         return 0;
     }
-    return DefWindowProc(hwnd, msg, wparam, lparam);    //
+    return DefWindowProc(hWnd, msg, wparam, lparam);
 }
 
 /// <summary>
-/// main
+/// init Direct3D device
 /// </summary>
-/// <returns></returns>
-int main()
+void Init_direct3d_device(HWND hwnd)
 {
-    int ret = 0;
+    // init Direct3D device
+    ComPtr<ID3D12Device> dev_ = nullptr;
+    auto hr = D3D12CreateDevice(
+        nullptr
+        , D3D_FEATURE_LEVEL_12_1
+        , IID_PPV_ARGS(&dev_));
+    if (FAILED(hr))
+    {
+        throw new std::runtime_error("D3D12CreateDevice failed.");
+    }
+}
 
-    DebugOutputFormatString("Show window test.");
-
-    // ---------------------------------
+/// <summary>
+/// WinMain
+/// </summary>
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
+{
     // make/register window class
-    WNDCLASSEX w = {};
-    w.cbSize = sizeof(WNDCLASSEX);
-    w.lpfnWndProc = (WNDPROC)WindowProcedure;    // setting callback
-    w.lpszClassName = _T("DirectXTest");         // application class name
-    w.hInstance = GetModuleHandle(0);            // get handle (anything name is OK)
-    RegisterClassEx(&w);                         // register application class
+    WNDCLASSEX wc = {};
+    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.lpfnWndProc = (WNDPROC)WndProc;     // setting callback
+    wc.lpszClassName = L"DirectXTest";     // application class name
+    wc.hInstance = hInstance;
+    RegisterClassEx(&wc);                  // register application class
 
-    RECT wrc = { 0,0, window_width, window_height };
-    AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);  // set window size
+    DWORD dwStyle = WS_OVERLAPPEDWINDOW;
+    RECT rect = { 0,0, WINDOW_WIDTH, WINDOW_HEIGHT };
+    AdjustWindowRect(&rect, dwStyle, false);  // set window size
 
-    // ---------------------------------
     // make windows object
-    HWND hwnd = CreateWindow(w.lpszClassName,  // set class name
-        _T("DX12 Test"),                       // title bar character
-        WS_OVERLAPPEDWINDOW,                   // title bar border window
+    auto hwnd = CreateWindow(wc.lpszClassName, // set class name
+        L"DX12 Test",                          // title bar character
+        dwStyle,                               // title bar border window
         CW_USEDEFAULT,                         // display x pos
         CW_USEDEFAULT,                         // display y pos
-        wrc.right - wrc.left,                  // window w
-        wrc.bottom - wrc.top,                  // windows h
-        nullptr,                               // parent window handle
-        nullptr,                               // menu handle
-        w.hInstance,                           // call application handle
-        nullptr);                              // add parameter
-    if (hwnd == nullptr){
-        ret = 255;         // error
-    }else{
-        ShowWindow(hwnd, SW_SHOW);    // show window
-    }
+        rect.right - rect.left,                // window w
+        rect.bottom - rect.top,                // windows h
+        nullptr,                  // parent window handle
+        nullptr,                  // menu handle
+        wc.hInstance,             // call application handle
+        nullptr                   // add parameter
+    );
 
-    // ---------------------------------
-    // init Direct3D device
-    if( D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&dev_)) != S_OK){
-        ret = 255;         // error
-    }
+    try
+    {
+        ShowWindow(hwnd, nCmdShow);    // show window
 
-    MSG msg = {};
-    while (true) {
-        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+        // init Direct3D device
+        Init_direct3d_device(hwnd);
+
+        MSG msg{};
+        while (msg.message != WM_QUIT) {
+            if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
         }
-        // end of application?
-        if (msg.message == WM_QUIT) {
-            break;
-        }
+
+        // remove
+        UnregisterClass(wc.lpszClassName, wc.hInstance);
+
+        return static_cast<int>(msg.wParam);
+    }
+    catch (std::runtime_error e) {
+        DebugBreak();
+        OutputDebugStringA(e.what());
+        OutputDebugStringA("\n");
     }
 
-    // remove
-    UnregisterClass(w.lpszClassName, w.hInstance);
-
-    return ret;
+    return 0;
 }
 
 // ===========================================
