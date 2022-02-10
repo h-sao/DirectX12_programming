@@ -1,5 +1,5 @@
 ﻿// step03:
-//  
+//  Search hardware adapter
 //   written by Akiko Kawai
 // ===========================================
 // include
