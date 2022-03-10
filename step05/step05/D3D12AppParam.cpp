@@ -1,4 +1,4 @@
-// D3D12AppParam.cpp
+﻿// D3D12AppParam.cpp
 //  
 //   written by Akiko Kawai
 // ===========================================
@@ -31,6 +31,8 @@ void D3D12AppParam::Initialize(HWND hwnd)
 {
     init_search_hardware_adapter(hwnd);
     init_direct3d_device(hwnd);
+    create_command_que(hwnd);
+    create_swap_chain(hwnd);
 }
 
 /// <summary>
@@ -46,8 +48,7 @@ void D3D12AppParam::init_search_hardware_adapter(HWND hwnd)
         debug->EnableDebugLayer();
         dxgiFlags |= DXGI_CREATE_FACTORY_DEBUG;
     }
-    ComPtr<IDXGIFactory3> factory;
-    if (FAILED(CreateDXGIFactory2(dxgiFlags, IID_PPV_ARGS(&factory))))
+    if (FAILED(CreateDXGIFactory2(dxgiFlags, IID_PPV_ARGS(&pDxgiFactory_))))
     {
         throw std::runtime_error("CreateDXGIFactory2 failed.");
     }
@@ -56,7 +57,7 @@ void D3D12AppParam::init_search_hardware_adapter(HWND hwnd)
     UINT adapterIndex = 0;
     ComPtr<IDXGIAdapter1> p_useAdapter;
     ComPtr<IDXGIAdapter1> p_adapter;
-    while (DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(adapterIndex, &p_adapter))
+    while (DXGI_ERROR_NOT_FOUND != pDxgiFactory_->EnumAdapters1(adapterIndex, &p_adapter))
     {
         DXGI_ADAPTER_DESC1 desc1{};
         p_adapter->GetDesc1(&desc1);
@@ -67,8 +68,8 @@ void D3D12AppParam::init_search_hardware_adapter(HWND hwnd)
         // can use D3D12?
         auto hr = D3D12CreateDevice(
             p_adapter.Get(),
-            //            D3D_FEATURE_LEVEL_11_0,
-            D3D_FEATURE_LEVEL_12_1,
+            D3D_FEATURE_LEVEL_11_0,
+            //D3D_FEATURE_LEVEL_12_1,
             __uuidof(ID3D12Device), nullptr);
         if (SUCCEEDED(hr))
         {
@@ -87,12 +88,68 @@ void D3D12AppParam::init_direct3d_device(HWND hwnd)
     pDevice_ = nullptr;
     auto hr = D3D12CreateDevice(
         nullptr
-        , D3D_FEATURE_LEVEL_12_1
+        , D3D_FEATURE_LEVEL_11_0
         , IID_PPV_ARGS(&pDevice_));
     if (FAILED(hr))
     {
         throw new std::runtime_error("D3D12CreateDevice failed.");
     }
+}
+
+/// <summary>
+/// Create command que
+/// </summary>
+void D3D12AppParam::create_command_que(HWND hwnd)
+{
+    D3D12_COMMAND_QUEUE_DESC queueDesc{
+      D3D12_COMMAND_LIST_TYPE_DIRECT,       // D3D12_COMMAND_LIST_TYPE: 
+      D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,  // priority: no priority
+      D3D12_COMMAND_QUEUE_FLAG_NONE,        // Flags: no timeout
+      0                                     // NodeMask: アダプターは１つなので０でよい
+    };
+    // create command que
+    auto hr = pDevice_->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&pCommandQueue_));
+    if (FAILED(hr))
+    {
+        throw std::runtime_error("CreateCommandQueue failed.");
+    }
+}
+
+/// <summary>
+/// Create swap chain
+/// </summary>
+void D3D12AppParam::create_swap_chain(HWND hwnd)
+{
+    // fix client drawing area size from HWND
+    RECT rect;
+    GetClientRect(hwnd, &rect);
+    int width = rect.right - rect.left;
+    int height = rect.bottom - rect.top;
+
+
+    DXGI_SWAP_CHAIN_DESC1 scDesc{};
+    scDesc.BufferCount = FrameBufferCount;
+    scDesc.Width = width;
+    scDesc.Height = height;
+    scDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    scDesc.SampleDesc.Count = 1;
+
+    ComPtr<IDXGISwapChain1> swapchain;
+    auto hr = pDxgiFactory_->CreateSwapChainForHwnd(
+        pCommandQueue_.Get(),
+        hwnd,
+        &scDesc,
+        nullptr,
+        nullptr,
+        &swapchain);
+    if (FAILED(hr))
+    {
+        throw std::runtime_error("CreateSwapChainForHwnd failed.");
+    }
+
+    swapchain.As(&pSwapchain_); // IDXGISwapChain4 取得
 }
 
 // ===========================================
