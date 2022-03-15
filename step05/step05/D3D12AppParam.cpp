@@ -105,7 +105,7 @@ void D3D12AppParam::create_command_que(HWND hwnd)
       D3D12_COMMAND_LIST_TYPE_DIRECT,       // D3D12_COMMAND_LIST_TYPE: 
       D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,  // priority: no priority
       D3D12_COMMAND_QUEUE_FLAG_NONE,        // Flags: no timeout
-      0                                     // NodeMask: アダプターは１つなので０でよい
+      0                                     // NodeMask: One adapter, so 0 is fine.
     };
     // create command que
     auto hr = pDevice_->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&pCommandQueue_));
@@ -150,6 +150,39 @@ void D3D12AppParam::create_swap_chain(HWND hwnd)
     }
 
     swapchain.As(&pSwapchain_); // IDXGISwapChain4 取得
+}
+
+/// <summary>
+/// Create Descriptor Heaps
+/// </summary>
+void D3D12AppParam::create_descriptor_heaps(HWND hwnd)
+{
+    // RTV(Render Target View) Descriptor heap
+    D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{
+      D3D12_DESCRIPTOR_HEAP_TYPE_RTV,       // RTV coz render target view
+      FrameBufferCount,
+      D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+      0
+    };
+    auto hr = pDevice_->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&pHeapRtv_));
+    if (FAILED(hr))
+    {
+        throw std::runtime_error("Failed CreateDescriptorHeap(RTV)");
+    }
+    rtvDescriptorSize_ = pDevice_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+    // DSV(Depth Stencil View) Descriptor heap
+    D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc{
+      D3D12_DESCRIPTOR_HEAP_TYPE_DSV,
+      1,
+      D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+      0
+    };
+    hr = pDevice_->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&pHeapDsv_));
+    if (FAILED(hr))
+    {
+        throw std::runtime_error("Failed CreateDescriptorHeap(DSv)");
+    }
 }
 
 // ===========================================

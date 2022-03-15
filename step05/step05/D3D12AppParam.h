@@ -17,7 +17,7 @@ public:
     void Initialize(HWND hWnd);
 
 private:
-    const UINT FrameBufferCount = 2;
+    const UINT FrameBufferCount = 2;    // both sides
 
     Microsoft::WRL::ComPtr<IDXGIFactory3> pDxgiFactory_;
 
@@ -25,10 +25,18 @@ private:
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> pCommandQueue_;
     Microsoft::WRL::ComPtr<IDXGISwapChain4> pSwapchain_;
 
+    // Render Target View
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> pHeapRtv_;
+    UINT rtvDescriptorSize_;
+    // Depth Stencil View
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> pHeapDsv_;
+
+
     void init_search_hardware_adapter(HWND hwnd);
     void init_direct3d_device(HWND hwnd);
     void create_command_que(HWND hwnd);
     void create_swap_chain(HWND hwnd);
+    void create_descriptor_heaps(HWND hwnd);
 };
 // ===========================================
 // End of file
