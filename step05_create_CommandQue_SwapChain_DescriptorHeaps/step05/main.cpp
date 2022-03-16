@@ -1,4 +1,4 @@
-// step05:
+// step05: Create Command que/ Swap chain /descriptor heaps
 //  
 //   written by Akiko Kawai
 // ===========================================
